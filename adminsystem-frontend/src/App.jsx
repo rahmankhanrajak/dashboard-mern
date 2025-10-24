@@ -1,31 +1,96 @@
 import { useState, useEffect } from 'react';
+import { createStore } from 'redux';
+import { Provider, useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:8000';
 
-function App() {
-  const [activeMenu, setActiveMenu] = useState('vendor');
-  const [selectedVendor, setSelectedVendor] = useState("");
+const SET_ACTIVE_MENU = 'SET_ACTIVE_MENU';
+const SET_VENDORS = 'SET_VENDORS';
+const SET_BRANDS = 'SET_BRANDS';
+const SET_PRODUCTS = 'SET_PRODUCTS';
+const SET_LOADING = 'SET_LOADING';
+const SET_VENDOR_FORM = 'SET_VENDOR_FORM';
+const SET_BRAND_FORM = 'SET_BRAND_FORM';
+const SET_PRODUCT_FORM = 'SET_PRODUCT_FORM';
+const RESET_VENDOR_FORM = 'RESET_VENDOR_FORM';
+const RESET_BRAND_FORM = 'RESET_BRAND_FORM';
+const RESET_PRODUCT_FORM = 'RESET_PRODUCT_FORM';
 
-  const [newTask, setNewTask] = useState("");
-  const [formId, setformId] = useState("");
-  const [isUpdate, setisUpdate] = useState(false);
+const setActiveMenu = (menu) => ({ type: SET_ACTIVE_MENU, payload: menu });
+const setVendors = (vendors) => ({ type: SET_VENDORS, payload: vendors });
+const setBrands = (brands) => ({ type: SET_BRANDS, payload: brands });
+const setProducts = (products) => ({ type: SET_PRODUCTS, payload: products });
+const setLoading = (loading) => ({ type: SET_LOADING, payload: loading });
+const setVendorForm = (data) => ({ type: SET_VENDOR_FORM, payload: data });
+const setBrandForm = (data) => ({ type: SET_BRAND_FORM, payload: data });
+const setProductForm = (data) => ({ type: SET_PRODUCT_FORM, payload: data });
+const resetVendorForm = () => ({ type: RESET_VENDOR_FORM });
+const resetBrandForm = () => ({ type: RESET_BRAND_FORM });
+const resetProductForm = () => ({ type: RESET_PRODUCT_FORM });
 
-  const [selectBrand, setselectBrand] = useState("");
-  const [selectqty, setselectqty] = useState("");
-  const [productsList, setproductsList] = useState([]);
-  const [formIdproduct, setformIdproduct] = useState("");
-  const [isUpdateProduct, setisUpdateProduct] = useState(false);
+const initialState = {
+  activeMenu: 'vendor',
+  vendors: [],
+  brands: [],
+  products: [],
+  loading: false,
+  vendorForm: {
+    Area: '',
+    vendorName: '',
+    Address: '',
+    isUpdate: false,
+    formId: ''
+  },
+  brandForm: {
+    selectedVendor: '',
+    newTask: '',
+    isUpdate: false,
+    formId: ''
+  },
+  productForm: {
+    selectedVendor: '',
+    selectBrand: '',
+    selectqty: '',
+    isUpdate: false,
+    formId: ''
+  }
+};
 
-  const [Area, setArea] = useState("");
-  const [vendorName, setvendorName] = useState("");
-  const [Address, setAddress] = useState("");
-  const [isvendorUpdate, setisvendorUpdate] = useState(false);
-  const [formIdvendor, setformIdvendor] = useState("");
+const reducer = (state = initialState, action) => {
+  switch (action.type) {
+    case SET_ACTIVE_MENU:
+      return { ...state, activeMenu: action.payload };
+    case SET_VENDORS:
+      return { ...state, vendors: action.payload };
+    case SET_BRANDS:
+      return { ...state, brands: action.payload };
+    case SET_PRODUCTS:
+      return { ...state, products: action.payload };
+    case SET_LOADING:
+      return { ...state, loading: action.payload };
+    case SET_VENDOR_FORM:
+      return { ...state, vendorForm: { ...state.vendorForm, ...action.payload } };
+    case SET_BRAND_FORM:
+      return { ...state, brandForm: { ...state.brandForm, ...action.payload } };
+    case SET_PRODUCT_FORM:
+      return { ...state, productForm: { ...state.productForm, ...action.payload } };
+    case RESET_VENDOR_FORM:
+      return { ...state, vendorForm: initialState.vendorForm };
+    case RESET_BRAND_FORM:
+      return { ...state, brandForm: initialState.brandForm };
+    case RESET_PRODUCT_FORM:
+      return { ...state, productForm: initialState.productForm };
+    default:
+      return state;
+  }
+};
 
-  const [vendorsList, setvendorsList] = useState([]);
-  const [brandList, setbrandList] = useState([]);
-  const [loading, setLoading] = useState(false);
+const store = createStore(reducer);
+
+function AppContent() {
+  const dispatch = useDispatch();
+  const { activeMenu, vendors, brands, products, loading, vendorForm, brandForm, productForm } = useSelector(state => state);
 
   useEffect(() => {
     fetchVendors();
@@ -33,11 +98,10 @@ function App() {
     fetchProducts();
   }, []);
 
-
   const fetchVendors = async () => {
     try {
       const response = await axios.get(`${API_URL}/vendors`);
-      setvendorsList(response.data);
+      dispatch(setVendors(response.data));
     } catch (error) {
       console.error('Error fetching vendors:', error);
       alert('Failed to fetch vendors');
@@ -47,19 +111,17 @@ function App() {
   const fetchBrands = async () => {
     try {
       const response = await axios.get(`${API_URL}/brands`);
-      setbrandList(response.data);
+      dispatch(setBrands(response.data));
     } catch (error) {
       console.error('Error fetching brands:', error);
       alert('Failed to fetch brands');
     }
   };
 
-
-
   const fetchProducts = async () => {
     try {
       const response = await axios.get(`${API_URL}/products`);
-      setproductsList(response.data);
+      dispatch(setProducts(response.data));
     } catch (error) {
       console.error('Error fetching products:', error);
       alert('Failed to fetch products');
@@ -67,27 +129,25 @@ function App() {
   };
 
   const addVendor = async () => {
-    if (!Area.trim() || !vendorName.trim() || !Address.trim()) {
+    if (!vendorForm.Area.trim() || !vendorForm.vendorName.trim() || !vendorForm.Address.trim()) {
       alert("All fields are required");
       return;
     }
 
-    setLoading(true);
+    dispatch(setLoading(true));
     try {
       await axios.post(`${API_URL}/vendors`, {
-        vendorName,
-        Area,
-        Address
+        vendorName: vendorForm.vendorName,
+        Area: vendorForm.Area,
+        Address: vendorForm.Address
       });
       await fetchVendors();
-      setArea("");
-      setvendorName("");
-      setAddress("");
+      dispatch(resetVendorForm());
     } catch (error) {
       console.error('Error adding vendor:', error);
       alert(error.response?.data?.error || 'Failed to add vendor');
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
@@ -96,10 +156,9 @@ function App() {
       return;
     }
 
-    setLoading(true);
+    dispatch(setLoading(true));
     try {
       await axios.delete(`${API_URL}/vendors/${vendor._id}`);
-
       await fetchVendors();
       await fetchBrands();
       await fetchProducts();
@@ -107,31 +166,36 @@ function App() {
       console.error('Error deleting vendor:', error);
       alert(error.response?.data?.error || 'Failed to delete vendor');
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
-
   const editVendor = (item) => {
-    setformIdvendor(item._id);
-    setvendorName(item.vendorName);
-    setArea(item.Area);
-    setAddress(item.Address);
-    setisvendorUpdate(true);
+    dispatch(setVendorForm({
+      formId: item._id,
+      vendorName: item.vendorName,
+      Area: item.Area,
+      Address: item.Address,
+      isUpdate: true
+    }));
   };
 
   const updateVendor = async () => {
-    if (!Area.trim() || !vendorName.trim() || !Address.trim()) {
+    if (!vendorForm.Area.trim() || !vendorForm.vendorName.trim() || !vendorForm.Address.trim()) {
       alert("All fields are required");
       return;
     }
 
-    setLoading(true);
+    dispatch(setLoading(true));
     try {
-      const response = await fetch(`${API_URL}/vendors/${formIdvendor}`, {
+      const response = await fetch(`${API_URL}/vendors/${vendorForm.formId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendorName, Area, Address })
+        body: JSON.stringify({
+          vendorName: vendorForm.vendorName,
+          Area: vendorForm.Area,
+          Address: vendorForm.Address
+        })
       });
 
       if (!response.ok) {
@@ -140,37 +204,34 @@ function App() {
       }
 
       await fetchVendors();
-      setArea("");
-      setvendorName("");
-      setAddress("");
-      setisvendorUpdate(false);
-      setformIdvendor("");
+      dispatch(resetVendorForm());
     } catch (error) {
       console.error('Error updating vendor:', error);
       alert('Failed to update vendor');
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
-  const addTask = async () => {
-    if (!newTask.trim() || !selectedVendor) {
+
+  const addBrand = async () => {
+    if (!brandForm.newTask.trim() || !brandForm.selectedVendor) {
       alert("Please select vendor and enter brand name");
       return;
     }
 
-    setLoading(true);
+    dispatch(setLoading(true));
     try {
       await axios.post(`${API_URL}/brands`, {
-        vendor: selectedVendor,
-        newTask
-      })
+        vendor: brandForm.selectedVendor,
+        newTask: brandForm.newTask
+      });
       await fetchBrands();
-      setNewTask("");
+      dispatch(setBrandForm({ newTask: '' }));
     } catch (error) {
       console.error('Error adding brand:', error);
       alert(error.response?.data?.error || 'Failed to add brand');
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
@@ -179,7 +240,7 @@ function App() {
       return;
     }
 
-    setLoading(true);
+    dispatch(setLoading(true));
     try {
       await axios.delete(`${API_URL}/brands/${brand._id}`);
       await fetchBrands();
@@ -188,97 +249,61 @@ function App() {
       console.error('Error deleting brand:', error);
       alert(error.response?.data?.error || 'Failed to delete brand');
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
-
-  const editTask = (item) => {
-    setformId(item._id);
-    setSelectedVendor(item.vendor);
-    setNewTask(item.newTask);
-    setisUpdate(true);
+  const editBrand = (item) => {
+    dispatch(setBrandForm({
+      formId: item._id,
+      selectedVendor: item.vendor,
+      newTask: item.newTask,
+      isUpdate: true
+    }));
   };
 
-  const updateTask = async () => {
-    if (!newTask.trim() || !selectedVendor) {
+  const updateBrand = async () => {
+    if (!brandForm.newTask.trim() || !brandForm.selectedVendor) {
       alert("Please select vendor and enter brand name");
       return;
     }
 
-    setLoading(true);
+    dispatch(setLoading(true));
     try {
-      await axios.put(`${API_URL}/brands/${formId}`, {
-        vendor: selectedVendor,
-        newTask
+      await axios.put(`${API_URL}/brands/${brandForm.formId}`, {
+        vendor: brandForm.selectedVendor,
+        newTask: brandForm.newTask
       });
       await fetchBrands();
-      setNewTask("");
-      setisUpdate(false);
-      setformId("");
+      dispatch(resetBrandForm());
     } catch (error) {
       console.error('Error updating brand:', error);
       alert(error.response?.data?.error || 'Failed to update brand');
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
-
-  // const addProduct = async () => {
-  //   if (!selectBrand.trim() || !selectqty.trim() || !selectedVendor) {
-  //     alert("All fields are required");
-  //     return;
-  //   }
-
-  //   setLoading(true);
-  //   try {
-  //     const response = await fetch(`${API_URL}/products`, {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ vendor: selectedVendor, selectBrand, selectqty })
-  //     });
-
-  //     if (!response.ok) {
-  //       alert('Failed to create product');
-  //       return;
-  //     }
-
-  //     await fetchProducts();
-  //     setselectBrand("");
-  //     setselectqty("");
-  //   } catch (error) {
-  //     console.error('Error adding product:', error);
-  //     alert('Failed to add product');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   const addProduct = async () => {
-    if (!selectBrand.trim() || !selectqty.trim() || !selectedVendor) {
+    if (!productForm.selectBrand.trim() || !productForm.selectqty.trim() || !productForm.selectedVendor) {
       alert("All fields are required");
       return;
     }
 
-    setLoading(true);
+    dispatch(setLoading(true));
     try {
-      const response = await axios.post(`${API_URL}/products`, {
-        vendor: selectedVendor, selectBrand, selectqty
+      await axios.post(`${API_URL}/products`, {
+        vendor: productForm.selectedVendor,
+        selectBrand: productForm.selectBrand,
+        selectqty: productForm.selectqty
       });
-
-      if (!response.ok) {
-        alert('Failed to create product');
-        return;
-      }
-
       await fetchProducts();
-      setselectBrand("");
-      setselectqty("");
+      dispatch(setProductForm({ selectBrand: '', selectqty: '' }));
     } catch (error) {
       console.error('Error adding product:', error);
       alert('Failed to add product');
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
@@ -287,59 +312,48 @@ function App() {
       return;
     }
 
-    setLoading(true);
+    dispatch(setLoading(true));
     try {
-      const response = await axios.delete(`${API_URL}/products/${product._id}`);
-
-      if (!response.ok) {
-        alert('Failed to delete product');
-        return;
-      }
-
+      await axios.delete(`${API_URL}/products/${product._id}`);
       await fetchProducts();
     } catch (error) {
       console.error('Error deleting product:', error);
       alert('Failed to delete product');
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
   const editProduct = (item) => {
-    setformIdproduct(item._id);
-    setSelectedVendor(item.vendor);
-    setselectBrand(item.selectBrand);
-    setselectqty(item.selectqty);
-    setisUpdateProduct(true);
+    dispatch(setProductForm({
+      formId: item._id,
+      selectedVendor: item.vendor,
+      selectBrand: item.selectBrand,
+      selectqty: item.selectqty,
+      isUpdate: true
+    }));
   };
 
   const updateProduct = async () => {
-    if (!selectBrand.trim() || !selectqty.trim() || !selectedVendor) {
+    if (!productForm.selectBrand.trim() || !productForm.selectqty.trim() || !productForm.selectedVendor) {
       alert("All fields are required");
       return;
     }
 
-    setLoading(true);
+    dispatch(setLoading(true));
     try {
-      const response = await axios.put(`${API_URL}/products/${formIdproduct}`, {
-        vendor: selectedVendor, selectBrand, selectqty
+      await axios.put(`${API_URL}/products/${productForm.formId}`, {
+        vendor: productForm.selectedVendor,
+        selectBrand: productForm.selectBrand,
+        selectqty: productForm.selectqty
       });
-
-      if (!response.ok) {
-        alert('Failed to update product');
-        return;
-      }
-
       await fetchProducts();
-      setselectBrand("");
-      setselectqty("");
-      setisUpdateProduct(false);
-      setformIdproduct("");
+      dispatch(resetProductForm());
     } catch (error) {
       console.error('Error updating product:', error);
       alert('Failed to update product');
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
@@ -349,26 +363,26 @@ function App() {
 
       <div style={{ width: '200px', backgroundColor: '#2c3e50', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <h3>WaterCane admin</h3>
-        <button onClick={() => setActiveMenu('vendor')} style={{ background: activeMenu === 'vendor' ? '#34495e' : 'transparent', color: 'white', padding: '10px', border: 'none', textAlign: 'left', cursor: 'pointer' }}>Vendor</button>
-        <button onClick={() => setActiveMenu('brand')} style={{ background: activeMenu === 'brand' ? '#34495e' : 'transparent', color: 'white', padding: '10px', border: 'none', textAlign: 'left', cursor: 'pointer' }}>Brand</button>
-        <button onClick={() => setActiveMenu('product')} style={{ background: activeMenu === 'product' ? '#34495e' : 'transparent', color: 'white', padding: '10px', border: 'none', textAlign: 'left', cursor: 'pointer' }}>Products</button>
+        <button onClick={() => dispatch(setActiveMenu('vendor'))} style={{ background: activeMenu === 'vendor' ? '#34495e' : 'transparent', color: 'white', padding: '10px', border: 'none', textAlign: 'left', cursor: 'pointer' }}>Vendor</button>
+        <button onClick={() => dispatch(setActiveMenu('brand'))} style={{ background: activeMenu === 'brand' ? '#34495e' : 'transparent', color: 'white', padding: '10px', border: 'none', textAlign: 'left', cursor: 'pointer' }}>Brand</button>
+        <button onClick={() => dispatch(setActiveMenu('product'))} style={{ background: activeMenu === 'product' ? '#34495e' : 'transparent', color: 'white', padding: '10px', border: 'none', textAlign: 'left', cursor: 'pointer' }}>Products</button>
       </div>
 
       <div style={{ flex: 1, padding: '20px' }}>
         {activeMenu === 'vendor' && (
           <>
             <h2>Vendor Entry</h2>
-            <input placeholder='Enter Area' value={Area} onChange={(e) => setArea(e.target.value)} style={{ margin: '5px', padding: '8px' }} />
-            <input placeholder='Enter Vendor Name' value={vendorName} onChange={(e) => setvendorName(e.target.value)} style={{ margin: '5px', padding: '8px' }} />
-            <input placeholder='Enter Address' value={Address} onChange={(e) => setAddress(e.target.value)} style={{ margin: '5px', padding: '8px' }} />
-            {!isvendorUpdate ?
+            <input placeholder='Enter Area' value={vendorForm.Area} onChange={(e) => dispatch(setVendorForm({ Area: e.target.value }))} style={{ margin: '5px', padding: '8px' }} />
+            <input placeholder='Enter Vendor Name' value={vendorForm.vendorName} onChange={(e) => dispatch(setVendorForm({ vendorName: e.target.value }))} style={{ margin: '5px', padding: '8px' }} />
+            <input placeholder='Enter Address' value={vendorForm.Address} onChange={(e) => dispatch(setVendorForm({ Address: e.target.value }))} style={{ margin: '5px', padding: '8px' }} />
+            {!vendorForm.isUpdate ?
               <button onClick={addVendor} style={{ margin: '5px', padding: '10px', background: '#3498db', color: 'white', border: 'none', cursor: 'pointer' }}>Add Vendor</button> :
               <button onClick={updateVendor} style={{ margin: '5px', padding: '10px', background: '#2ecc71', color: 'white', border: 'none', cursor: 'pointer' }}>Update Vendor</button>
             }
             <h3>Vendors List</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={{ border: '1px solid #ddd', padding: '8px' }}>Vendor Name</th><th style={{ border: '1px solid #ddd', padding: '8px' }}>Address</th><th style={{ border: '1px solid #ddd', padding: '8px' }}>Area</th><th style={{ border: '1px solid #ddd', padding: '8px' }}>Actions</th></tr></thead>
-              <tbody>{vendorsList.map((item) => (<tr key={item._id}><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.vendorName}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.Address}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.Area}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}><button onClick={() => editVendor(item)} style={{ margin: '2px', padding: '5px', background: '#f39c12', color: 'white', border: 'none', cursor: 'pointer' }}>Edit</button><button onClick={() => deleteVendor(item)} style={{ margin: '2px', padding: '5px', background: '#e74c3c', color: 'white', border: 'none', cursor: 'pointer' }}>Delete</button></td></tr>))}</tbody>
+              <tbody>{vendors.map((item) => (<tr key={item._id}><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.vendorName}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.Address}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.Area}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}><button onClick={() => editVendor(item)} style={{ margin: '2px', padding: '5px', background: '#f39c12', color: 'white', border: 'none', cursor: 'pointer' }}>Edit</button><button onClick={() => deleteVendor(item)} style={{ margin: '2px', padding: '5px', background: '#e74c3c', color: 'white', border: 'none', cursor: 'pointer' }}>Delete</button></td></tr>))}</tbody>
             </table>
           </>
         )}
@@ -376,16 +390,16 @@ function App() {
         {activeMenu === 'brand' && (
           <>
             <h2>Brand Management</h2>
-            <select value={selectedVendor} onChange={(e) => setSelectedVendor(e.target.value)} style={{ margin: '5px', padding: '8px' }}><option value="">-- Select Vendor --</option>{vendorsList.map((vendor) => (<option key={vendor._id} value={vendor.vendorName}>{vendor.vendorName}</option>))}</select>
-            <input placeholder='Brand Name' value={newTask} onChange={(e) => setNewTask(e.target.value)} style={{ margin: '5px', padding: '8px' }} />
-            {!isUpdate ?
-              <button onClick={addTask} style={{ margin: '5px', padding: '10px', background: '#3498db', color: 'white', border: 'none', cursor: 'pointer' }}>Add Brand</button> :
-              <button onClick={updateTask} style={{ margin: '5px', padding: '10px', background: '#2ecc71', color: 'white', border: 'none', cursor: 'pointer' }}>Update Brand</button>
+            <select value={brandForm.selectedVendor} onChange={(e) => dispatch(setBrandForm({ selectedVendor: e.target.value }))} style={{ margin: '5px', padding: '8px' }}><option value="">-- Select Vendor --</option>{vendors.map((vendor) => (<option key={vendor._id} value={vendor.vendorName}>{vendor.vendorName}</option>))}</select>
+            <input placeholder='Brand Name' value={brandForm.newTask} onChange={(e) => dispatch(setBrandForm({ newTask: e.target.value }))} style={{ margin: '5px', padding: '8px' }} />
+            {!brandForm.isUpdate ?
+              <button onClick={addBrand} style={{ margin: '5px', padding: '10px', background: '#3498db', color: 'white', border: 'none', cursor: 'pointer' }}>Add Brand</button> :
+              <button onClick={updateBrand} style={{ margin: '5px', padding: '10px', background: '#2ecc71', color: 'white', border: 'none', cursor: 'pointer' }}>Update Brand</button>
             }
             <h3>Brands List</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={{ border: '1px solid #ddd', padding: '8px' }}>Vendor</th><th style={{ border: '1px solid #ddd', padding: '8px' }}>Brand</th><th style={{ border: '1px solid #ddd', padding: '8px' }}>Actions</th></tr></thead>
-              <tbody>{brandList.map((item) => (<tr key={item._id}><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.vendor}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.newTask}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}><button onClick={() => editTask(item)} style={{ margin: '2px', padding: '5px', background: '#f39c12', color: 'white', border: 'none', cursor: 'pointer' }}>Edit</button><button onClick={() => deleteBrand(item)} style={{ margin: '2px', padding: '5px', background: '#e74c3c', color: 'white', border: 'none', cursor: 'pointer' }}>Delete</button></td></tr>))}</tbody>
+              <tbody>{brands.map((item) => (<tr key={item._id}><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.vendor}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.newTask}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}><button onClick={() => editBrand(item)} style={{ margin: '2px', padding: '5px', background: '#f39c12', color: 'white', border: 'none', cursor: 'pointer' }}>Edit</button><button onClick={() => deleteBrand(item)} style={{ margin: '2px', padding: '5px', background: '#e74c3c', color: 'white', border: 'none', cursor: 'pointer' }}>Delete</button></td></tr>))}</tbody>
             </table>
           </>
         )}
@@ -393,22 +407,30 @@ function App() {
         {activeMenu === 'product' && (
           <>
             <h3>Add Product</h3>
-            <select value={selectedVendor} onChange={(e) => setSelectedVendor(e.target.value)} style={{ margin: '5px', padding: '8px' }}><option value="">-- Select Vendor --</option>{vendorsList.map((vendor) => (<option key={vendor._id} value={vendor.vendorName}>{vendor.vendorName}</option>))}</select>
-            <select value={selectBrand} onChange={(e) => setselectBrand(e.target.value)} style={{ margin: '5px', padding: '8px' }}><option value="">-- Select Brand --</option>{brandList.filter(item => item.vendor === selectedVendor).map((item) => (<option key={item._id} value={item.newTask}>{item.newTask}</option>))}</select>
-            <select value={selectqty} onChange={(e) => setselectqty(e.target.value)} style={{ margin: '5px', padding: '8px' }}><option value="">-- Select Quantity --</option><option value="10L">10L</option><option value="20L">20L</option><option value="30L">30L</option></select>
-            {!isUpdateProduct ?
+            <select value={productForm.selectedVendor} onChange={(e) => dispatch(setProductForm({ selectedVendor: e.target.value }))} style={{ margin: '5px', padding: '8px' }}><option value="">-- Select Vendor --</option>{vendors.map((vendor) => (<option key={vendor._id} value={vendor.vendorName}>{vendor.vendorName}</option>))}</select>
+            <select value={productForm.selectBrand} onChange={(e) => dispatch(setProductForm({ selectBrand: e.target.value }))} style={{ margin: '5px', padding: '8px' }}><option value="">-- Select Brand --</option>{brands.filter(item => item.vendor === productForm.selectedVendor).map((item) => (<option key={item._id} value={item.newTask}>{item.newTask}</option>))}</select>
+            <select value={productForm.selectqty} onChange={(e) => dispatch(setProductForm({ selectqty: e.target.value }))} style={{ margin: '5px', padding: '8px' }}><option value="">-- Select Quantity --</option><option value="10L">10L</option><option value="20L">20L</option><option value="30L">30L</option></select>
+            {!productForm.isUpdate ?
               <button onClick={addProduct} style={{ margin: '5px', padding: '10px', background: '#3498db', color: 'white', border: 'none', cursor: 'pointer' }}>Add Product</button> :
               <button onClick={updateProduct} style={{ margin: '5px', padding: '10px', background: '#2ecc71', color: 'white', border: 'none', cursor: 'pointer' }}>Update Product</button>
             }
             <h3>Products List</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={{ border: '1px solid #ddd', padding: '8px' }}>Vendor</th><th style={{ border: '1px solid #ddd', padding: '8px' }}>Brand</th><th style={{ border: '1px solid #ddd', padding: '8px' }}>Qty</th><th style={{ border: '1px solid #ddd', padding: '8px' }}>Actions</th></tr></thead>
-              <tbody>{productsList.map((item) => (<tr key={item._id}><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.vendor}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.selectBrand}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.selectqty}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}><button onClick={() => editProduct(item)} style={{ margin: '2px', padding: '5px', background: '#f39c12', color: 'white', border: 'none', cursor: 'pointer' }}>Edit</button><button onClick={() => deleteProduct(item)} style={{ margin: '2px', padding: '5px', background: '#e74c3c', color: 'white', border: 'none', cursor: 'pointer' }}>Delete</button></td></tr>))}</tbody>
+              <tbody>{products.map((item) => (<tr key={item._id}><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.vendor}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.selectBrand}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.selectqty}</td><td style={{ border: '1px solid #ddd', padding: '8px' }}><button onClick={() => editProduct(item)} style={{ margin: '2px', padding: '5px', background: '#f39c12', color: 'white', border: 'none', cursor: 'pointer' }}>Edit</button><button onClick={() => deleteProduct(item)} style={{ margin: '2px', padding: '5px', background: '#e74c3c', color: 'white', border: 'none', cursor: 'pointer' }}>Delete</button></td></tr>))}</tbody>
             </table>
           </>
         )}
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Provider store={store}>
+      <AppContent />
+    </Provider>
   );
 }
 
