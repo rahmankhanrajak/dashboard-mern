@@ -33,19 +33,16 @@ function App() {
     fetchProducts();
   }, []);
 
- 
+
   const fetchVendors = async () => {
     try {
       const response = await axios.get(`${API_URL}/vendors`);
-      setvendorsList(response.data); // axios puts the data in `response.data`
+      setvendorsList(response.data);
     } catch (error) {
       console.error('Error fetching vendors:', error);
       alert('Failed to fetch vendors');
     }
   };
-
-
-
 
   const fetchBrands = async () => {
     try {
@@ -61,9 +58,8 @@ function App() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch(`${API_URL}/products`);
-      const data = await response.json();
-      setproductsList(data);
+      const response = await axios.get(`${API_URL}/products`);
+      setproductsList(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
       alert('Failed to fetch products');
@@ -78,25 +74,18 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/vendors`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendorName, Area, Address })
+      await axios.post(`${API_URL}/vendors`, {
+        vendorName,
+        Area,
+        Address
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        alert(error.error || 'Failed to create vendor');
-        return;
-      }
-
       await fetchVendors();
       setArea("");
       setvendorName("");
       setAddress("");
     } catch (error) {
       console.error('Error adding vendor:', error);
-      alert('Failed to add vendor');
+      alert(error.response?.data?.error || 'Failed to add vendor');
     } finally {
       setLoading(false);
     }
@@ -109,25 +98,19 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/vendors/${vendor._id}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        alert('Failed to delete vendor');
-        return;
-      }
+      await axios.delete(`${API_URL}/vendors/${vendor._id}`);
 
       await fetchVendors();
       await fetchBrands();
       await fetchProducts();
     } catch (error) {
       console.error('Error deleting vendor:', error);
-      alert('Failed to delete vendor');
+      alert(error.response?.data?.error || 'Failed to delete vendor');
     } finally {
       setLoading(false);
     }
   };
+
 
   const editVendor = (item) => {
     setformIdvendor(item._id);
@@ -169,7 +152,6 @@ function App() {
       setLoading(false);
     }
   };
-
   const addTask = async () => {
     if (!newTask.trim() || !selectedVendor) {
       alert("Please select vendor and enter brand name");
@@ -178,22 +160,15 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/brands`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendor: selectedVendor, newTask })
-      });
-
-      if (!response.ok) {
-        alert('Failed to create brand');
-        return;
-      }
-
+      await axios.post(`${API_URL}/brands`, {
+        vendor: selectedVendor,
+        newTask
+      })
       await fetchBrands();
       setNewTask("");
     } catch (error) {
       console.error('Error adding brand:', error);
-      alert('Failed to add brand');
+      alert(error.response?.data?.error || 'Failed to add brand');
     } finally {
       setLoading(false);
     }
@@ -206,24 +181,17 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/brands/${brand._id}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        alert('Failed to delete brand');
-        return;
-      }
-
+      await axios.delete(`${API_URL}/brands/${brand._id}`);
       await fetchBrands();
       await fetchProducts();
     } catch (error) {
       console.error('Error deleting brand:', error);
-      alert('Failed to delete brand');
+      alert(error.response?.data?.error || 'Failed to delete brand');
     } finally {
       setLoading(false);
     }
   };
+
 
   const editTask = (item) => {
     setformId(item._id);
@@ -240,29 +208,52 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/brands/${formId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendor: selectedVendor, newTask })
+      await axios.put(`${API_URL}/brands/${formId}`, {
+        vendor: selectedVendor,
+        newTask
       });
-
-      if (!response.ok) {
-        alert('Failed to update brand');
-        return;
-      }
-
       await fetchBrands();
       setNewTask("");
       setisUpdate(false);
       setformId("");
     } catch (error) {
       console.error('Error updating brand:', error);
-      alert('Failed to update brand');
+      alert(error.response?.data?.error || 'Failed to update brand');
     } finally {
       setLoading(false);
     }
   };
 
+
+  // const addProduct = async () => {
+  //   if (!selectBrand.trim() || !selectqty.trim() || !selectedVendor) {
+  //     alert("All fields are required");
+  //     return;
+  //   }
+
+  //   setLoading(true);
+  //   try {
+  //     const response = await fetch(`${API_URL}/products`, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ vendor: selectedVendor, selectBrand, selectqty })
+  //     });
+
+  //     if (!response.ok) {
+  //       alert('Failed to create product');
+  //       return;
+  //     }
+
+  //     await fetchProducts();
+  //     setselectBrand("");
+  //     setselectqty("");
+  //   } catch (error) {
+  //     console.error('Error adding product:', error);
+  //     alert('Failed to add product');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const addProduct = async () => {
     if (!selectBrand.trim() || !selectqty.trim() || !selectedVendor) {
       alert("All fields are required");
@@ -271,10 +262,8 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/products`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendor: selectedVendor, selectBrand, selectqty })
+      const response = await axios.post(`${API_URL}/products`, {
+        vendor: selectedVendor, selectBrand, selectqty
       });
 
       if (!response.ok) {
@@ -300,9 +289,7 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/products/${product._id}`, {
-        method: 'DELETE'
-      });
+      const response = await axios.delete(`${API_URL}/products/${product._id}`);
 
       if (!response.ok) {
         alert('Failed to delete product');
@@ -334,10 +321,8 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/products/${formIdproduct}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendor: selectedVendor, selectBrand, selectqty })
+      const response = await axios.put(`${API_URL}/products/${formIdproduct}`, {
+        vendor: selectedVendor, selectBrand, selectqty
       });
 
       if (!response.ok) {
